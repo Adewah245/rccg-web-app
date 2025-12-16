@@ -1,105 +1,65 @@
 import streamlit as st
 import json
-import requests
-from datetime import datetime
+import os
 
-st.set_page_config(page_title="Sunrise Parish Y&A Zone", layout="centered", page_icon="⛪")
+st.set_page_config(page_title="RCCG Sunrise Parish", layout="wide")
 
-# Load data from your GitHub repo
-data_url = "https://raw.githubusercontent.com/Adewah245/rccg-parish-data/main/data.json"
-# Base URL for photos - UPDATE THIS to match where your photos are stored
-photos_base_url = "https://raw.githubusercontent.com/Adewah245/rccg-parish-data/main/photos/"
-# Logo URL - UPDATE THIS to match where your logo is stored
-logo_url = "https://raw.githubusercontent.com/Adewah245/rccg-parish-data/main/logo.png"
+DATA_FILE = "parish_members.json"
+PHOTOS_DIR = "member_photos"
+LOGO_FILE = "logo.txt"
 
-# Display logo at the top
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    try:
-        st.image(logo_url, use_container_width=True)
-    except:
-        st.write("⛪")  # Fallback if logo fails to load
+def load_members():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return []
 
-st.title("🏢 RCCG BENUE 2 SUNRISE PARISH")
-st.header("YOUNG AND ADULTS ZONE")
+def load_logo():
+    if os.path.exists(LOGO_FILE):
+        with open(LOGO_FILE, "r") as f:
+            return f.read()
+    return ""
 
-st.markdown("---")
+members = load_members()
 
-try:
-    data = requests.get(data_url).json()
-    members_list = data.get("members", [])
-    messages = data.get("messages", [])
-    last_update = data.get("last_update", "Unknown")
-except:
-    st.error("Unable to load latest data. Please contact the Youth President.")
-    st.stop()
+# ---- HEADER ----
+logo = load_logo()
+if logo:
+    st.text(logo)
 
-# Convert list to dictionary for easier handling
-members = {}
-for member in members_list:
-    name = member.get("name", "Unknown")
-    members[name] = member
+st.markdown("## ⛪ RCCG Benue 2 Sunrise Parish – Young & Adults Zone")
+st.markdown(f"👥 **Total Members:** {len(members)}")
+st.divider()
 
-# Latest Message
-if messages:
-    latest = messages[-1]
-    with st.expander("📢 LATEST PARISH MESSAGE", expanded=True):
-        st.markdown(f"**{latest['text']}**")
-        st.caption(f"Sent on: {latest['date']}")
-else:
-    with st.expander("📢 PARISH MESSAGE", expanded=True):
-        st.info("No announcement yet. Stay tuned!")
-
-st.markdown("---")
-
-st.success(f"**Total Members: {len(members)}** | Last updated: {last_update}")
-
-# Search
+# ---- SEARCH ----
 search = st.text_input("🔍 Search by name or phone")
-filtered = members
 
-if search:
-    search_lower = search.lower()
-    filtered = {}
-    for name, info in members.items():
-        name_match = search_lower in name.lower()
-        phone_match = search_lower in info.get("phone", "").lower()
-        if name_match or phone_match:
-            filtered[name] = info
+filtered = []
+for m in members:
+    if search.lower() in m["name"].lower() or search in m["phone"]:
+        filtered.append(m)
 
-if not filtered:
-    st.warning("No members found.")
-else:
-    st.markdown(f"### 📋 Members List ({len(filtered)} shown)")
-    # Sort alphabetically by name (case-insensitive)
-    sorted_members = sorted(filtered.items(), key=lambda x: x[0].lower())
-    for i, (name, info) in enumerate(sorted_members, 1):
-        with st.expander(f"{i}. {name.title()}"):
-            # Create two columns for photo and info
-            col1, col2 = st.columns([1, 2])
-            
-            with col1:
-                # Display photo if available
-                photo = info.get('photo', '')
-                if photo and photo != "Photo copy failed" and photo.endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp')):
-                    photo_url = photos_base_url + photo
-                    try:
-                        st.image(photo_url, width=150, caption=name.title())
-                    except:
-                        st.write("📷")
-                        st.caption("Photo unavailable")
-                else:
-                    st.write("👤")
-                    st.caption("No photo")
-            
-            with col2:
-                st.write(f"**📱 Phone:** {info.get('phone', 'N/A')}")
-                st.write(f"**📍 Address:** {info.get('address', 'N/A')}")
-                if info.get('email'):
-                    st.write(f"**📧 Email:** {info.get('email')}")
-                if info.get('birthday'):
-                    st.write(f"**🎂 Birthday:** {info.get('birthday')}")
-                st.caption(f"✅ Joined: {info.get('joined', 'Unknown')}")
+st.markdown(f"### Members List ({len(filtered)} shown)")
 
-st.markdown("---")
-st.caption("Managed by Youth President | For inquiries, contact the admin · God bless you! ✝️")
+# ---- DISPLAY MEMBERS ----
+for m in filtered:
+    col1, col2 = st.columns([1, 3])
+
+    photo = m.get("photo", "No photo")
+    photo_path = os.path.join(PHOTOS_DIR, photo)
+
+    with col1:
+        if photo != "No photo" and os.path.exists(photo_path):
+            st.image(photo_path, width=120)
+        else:
+            st.info("No photo")
+
+    with col2:
+        st.markdown(f"### 👤 {m['name']}")
+        st.write(f"📞 Phone: {m['phone']}")
+        st.write(f"✉️ Email: {m.get('email','Not provided')}")
+        st.write(f"🏠 Address: {m['address']}")
+        st.write(f"🎂 Birthday: {m['birthday']}")
+        st.write(f"📅 Joined: {m['joined']}")
+
+    st.divider()
