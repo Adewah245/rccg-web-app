@@ -47,11 +47,11 @@ if not filtered:
     st.warning("No members found.")
 else:
     st.markdown(f"### 📋 Members List ({len(filtered)} shown)")
+    st.markdown("---")
     for i, (name, info) in enumerate(sorted(filtered.items()), 1):
-        with st.expander(f"{i}. {name}"):
-            st.write(f"**Phone:** {info['phone']}")
-            st.write(f"**Address:** {info['address']}")
-            st.caption(f"Joined: {info['joined']}")
-
-st.markdown("---")
-st.caption("Managed by Youth President | For inquiries, contact the admin · God bless you! ✝️")
+        st.markdown(f"**{i}. {name}**")
+        st.markdown(f"**Phone:** {info['phone']}")
+        st.markdown(f"**Address:** {info['address']}")
+        st.markdown(f"**Joined:** {info['joined']}")
+        st.markdown("")  # blank line
+        st.markdown("---")  # separator line
