@@ -15,12 +15,18 @@ data_url = "https://raw.githubusercontent.com/Adewah245/rccg-parish-data/main/da
 
 try:
     data = requests.get(data_url).json()
-    members = data.get("members", {})
+    members_list = data.get("members", [])
     messages = data.get("messages", [])
     last_update = data.get("last_update", "Unknown")
 except:
     st.error("Unable to load latest data. Please contact the Youth President.")
     st.stop()
+
+# Convert list to dictionary for easier handling
+members = {}
+for member in members_list:
+    name = member.get("name", "Unknown")
+    members[name] = member
 
 # Latest Message
 if messages:
@@ -39,19 +45,30 @@ st.success(f"**Total Members: {len(members)}** | Last updated: {last_update}")
 # Search
 search = st.text_input("🔍 Search by name or phone")
 filtered = members
+
 if search:
     search_lower = search.lower()
-    filtered = {n: info for n, info in members.items() if search_lower in n.lower() or search_lower in info["phone"].lower()}
+    filtered = {}
+    for name, info in members.items():
+        name_match = search_lower in name.lower()
+        phone_match = search_lower in info.get("phone", "").lower()
+        if name_match or phone_match:
+            filtered[name] = info
 
 if not filtered:
     st.warning("No members found.")
 else:
     st.markdown(f"### 📋 Members List ({len(filtered)} shown)")
     for i, (name, info) in enumerate(sorted(filtered.items()), 1):
-        with st.expander(f"{i}. {name}"):
-            st.write(f"**Phone:** {info['phone']}")
-            st.write(f"**Address:** {info['address']}")
-            st.caption(f"Joined: {info['joined']}")
+        with st.expander(f"{i}. {name.title()}"):
+            st.write(f"**📱 Phone:** {info.get('phone', 'N/A')}")
+            st.write(f"**📍 Address:** {info.get('address', 'N/A')}")
+            if info.get('email'):
+                st.write(f"**📧 Email:** {info.get('email')}")
+            if info.get('birthday'):
+                st.write(f"**🎂 Birthday:** {info.get('birthday')}")
+            st.caption(f"✅ Joined: {info.get('joined', 'Unknown')}")
 
 st.markdown("---")
 st.caption("Managed by Youth President | For inquiries, contact the admin · God bless you! ✝️")
+
